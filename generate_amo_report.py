@@ -18,7 +18,7 @@ DOMAIN = "simmihur.amocrm.ru"
 
 SOURCE_FIELD_ID = 1321741
 SOURCE_ENUM_ID  = 954555    # Реанимация УП-2 ручная
-UPDATED_FROM    = 1735689600  # 2026-01-01
+UPDATED_FROM    = 1750550400  # 2026-06-22
 
 REASON_FIELD_ID = 180637    # Причина закрытия
 TEST_REASON     = "ТЕСТ"    # Исключаем тестовые сделки
@@ -263,7 +263,7 @@ def compute_cohort_table(leads, statuses):
         monday = d - datetime.timedelta(days=d.weekday())
         week_leads[monday].append(lead)
 
-    cohort_start = datetime.date(2026, 6, 1)
+    cohort_start = datetime.date(2026, 6, 22)
     sorted_weeks = [w for w in sorted(week_leads.keys()) if w >= cohort_start]
 
     def stage_counts(lead_list):
@@ -402,7 +402,7 @@ def build_report():
 
     print("Computing conversion (Взято → Контакт) by creation date…")
     _tz_msk     = datetime.timezone(datetime.timedelta(hours=3))
-    _start_date = datetime.date(2026, 6, 6)
+    _start_date = datetime.date(2026, 6, 22)
     _today      = datetime.datetime.now(_tz_msk).date()
     conv_dates, conv_vzv, conv_pct = compute_conversion_by_day(leads, statuses, _tz_msk, _start_date, _today)
 
@@ -433,7 +433,7 @@ def build_report():
 
     # Daily lead counts from June 6 onwards
     tz_msk = datetime.timezone(datetime.timedelta(hours=3))
-    start_date = datetime.date(2026, 6, 6)
+    start_date = datetime.date(2026, 6, 22)
     today = datetime.datetime.now(tz_msk).date()
     daily_counts = {}
     d = start_date
@@ -616,7 +616,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ОП Dashboard — Реанимация УП-2 ручная</title>
+<title>ОП Dashboard — Реанимация</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
   :root {{
@@ -662,7 +662,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-<h1>ОП Dashboard — Реанимация УП-2 ручная</h1>
+<h1>ОП Dashboard — Реанимация</h1>
 <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
   <p class="meta" style="margin:0">Источник: amoCRM simmihur &nbsp;·&nbsp; Обновлено: {updated_at}</p>
   <button id="refreshBtn" onclick="triggerRefresh()" style="background:#4f8ef7;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -751,8 +751,6 @@ function triggerRefresh() {{
 <table id="cohortTable" style="min-width:600px"></table>
 </div>
 
-<h2>Конверсия: Взято в работу → Контакт установлен</h2>
-<div class="chart-card" style="height:320px"><canvas id="convFunnelChart"></canvas></div>
 
 <h2>Лиды по менеджерам</h2>
 <div class="chart-card" style="height:600px"><canvas id="mgrChart"></canvas></div>
@@ -1016,67 +1014,6 @@ new Chart(document.getElementById("dailyCapChart"),{{
   }}
 }});
 
-// Conversion funnel chart: bar (взято в работу) + line (% конверсии)
-new Chart(document.getElementById("convFunnelChart"),{{
-  data:{{
-    labels:DATA.conv_dates,
-    datasets:[
-      {{
-        type:"bar",
-        label:"Взято в работу",
-        data:DATA.conv_vzv,
-        backgroundColor:"#00cec9",
-        borderRadius:3,
-        yAxisID:"yCount",
-        order:2,
-      }},
-      {{
-        type:"line",
-        label:"% в Контакт установлен",
-        data:DATA.conv_pct,
-        borderColor:"#ffd32a",
-        backgroundColor:"transparent",
-        pointBackgroundColor:"#ffd32a",
-        pointRadius:4,
-        tension:0.3,
-        yAxisID:"yPct",
-        order:1,
-        datalabels:{{display:true}},
-      }}
-    ]
-  }},
-  options:{{
-    maintainAspectRatio:false,
-    interaction:{{mode:"index",intersect:false}},
-    plugins:{{
-      legend:{{labels:{{color:"#e8eaf0"}}}},
-      tooltip:{{callbacks:{{
-        label:function(c){{
-          return c.dataset.yAxisID==="yPct"
-            ? ` ${{c.dataset.label}}: ${{c.raw}}%`
-            : ` ${{c.dataset.label}}: ${{c.raw}}`;
-        }}
-      }}}}
-    }},
-    scales:{{
-      x:{{ticks:{{color:"#e8eaf0"}},grid:{{color:"#1e2a3a"}}}},
-      yCount:{{
-        position:"left",
-        beginAtZero:true,
-        ticks:{{color:"#e8eaf0"}},
-        grid:{{color:"#1e2a3a"}},
-        title:{{display:true,text:"Взято в работу",color:"#00cec9"}},
-      }},
-      yPct:{{
-        position:"right",
-        min:0,max:100,
-        ticks:{{color:"#ffd32a",callback:v=>v+"%"}},
-        grid:{{drawOnChartArea:false}},
-        title:{{display:true,text:"Конверсия %",color:"#ffd32a"}},
-      }}
-    }}
-  }}
-}});
 
 // Capital doughnut
 new Chart(document.getElementById("capitalChart"),{{
