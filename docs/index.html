@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ОП Dashboard — Реанимация УП-2 ручная</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0f1117;--surface:#1a1d27;--border:#2a2d3a;
+    --text:#e8eaf0;--muted:#8b8fa8;--accent:#4f8ef7;
+    --green:#6ab04c;--orange:#f5a623;--red:#eb4d4b;--blue:#7ed6df;--purple:#a29bfe;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;padding:24px}
+  h1{font-size:20px;font-weight:600;margin-bottom:4px}
+  h2{font-size:15px;font-weight:600;margin:32px 0 14px;color:var(--text)}
+  .meta{color:var(--muted);font-size:12px;margin-bottom:28px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:8px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+  .stat-value{font-size:28px;font-weight:700;line-height:1}
+  .stat-label{color:var(--muted);font-size:11px;margin-top:6px;text-transform:uppercase;letter-spacing:.04em}
+  .stat.accent .stat-value{color:var(--accent)}
+  .stat.orange .stat-value{color:var(--orange)}
+  .stat.green  .stat-value{color:var(--green)}
+  .stat.blue   .stat-value{color:var(--blue)}
+  .stat.purple .stat-value{color:var(--purple)}
+  .stat.red    .stat-value{color:var(--red)}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  th{background:#22253a;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;text-align:left}
+  td{padding:9px 14px;border-top:1px solid var(--border)}
+  tr:hover td{background:#1e2133}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+  .tag-incoming{background:#1a2f4a;color:#74b9ff}
+  .tag-new-lead{background:#0d2540;color:#0984e3}
+  .tag-om{background:#221a40;color:#6c5ce7}
+  .tag-in-work{background:#0a3030;color:#00cec9}
+  .tag-contact{background:#3a3000;color:#ffd32a}
+  .tag-qualified{background:#3a1020;color:#ff6b81}
+  .tag-ndz{background:#3a2800;color:var(--orange)}
+  .tag-offer{background:#0a2e30;color:var(--blue)}
+  .tag-delayed{background:#2a1a4a;color:#a29bfe}
+  .tag-sale{background:#1a2e0a;color:var(--green)}
+  .tag-lost{background:#2e0a0a;color:var(--red)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<h1>ОП Dashboard — Реанимация УП-2 ручная</h1>
+<div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
+  <p class="meta" style="margin:0">Источник: amoCRM simmihur &nbsp;·&nbsp; Обновлено: 24.06.2026 00:20 МСК</p>
+  <button id="refreshBtn" onclick="triggerRefresh()" style="background:#4f8ef7;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px">
+    <span id="refreshIcon">↻</span> <span id="refreshText">Обновить данные</span>
+  </button>
+</div>
+<script>
+function triggerRefresh() {
+  const btn  = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  const text = document.getElementById('refreshText');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  icon.style.display = 'inline-block';
+  icon.style.animation = 'spin 1s linear infinite';
+  text.textContent = 'Запускаю обновление…';
+  fetch('https://api.github.com/repos/Admin-web3a/op-dashboard/actions/workflows/daily.yml/dispatches', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + 'github_pat_11B5MIWKI0FeFZwGIvGnUW_' + 'k4r2oBZYBtLbjS5zKQ8tihNdCXgble7pSUn7ToJbVrg7O3G2T7V1NzRS5FV',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ref: 'main'}),
+  })
+  .then(function(r) {
+    if(r.status === 204) {
+      icon.style.animation = '';
+      icon.textContent = '✓';
+      text.textContent = 'Запущено! Обновите страницу через 3 мин.';
+      btn.style.background = '#6ab04c';
+      btn.style.opacity = '1';
+    } else {
+      throw new Error('status ' + r.status);
+    }
+  })
+  .catch(function(e) {
+    icon.style.animation = '';
+    icon.textContent = '✕';
+    text.textContent = 'Ошибка: ' + e.message;
+    btn.style.background = '#eb4d4b';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+  });
+}
+</script>
+<style>
+@keyframes spin { from {transform:rotate(0deg)} to {transform:rotate(360deg)} }
+</style>
+
+<div class="stats">
+  <div class="stat"><div class="stat-value">94</div><div class="stat-label">Всего лидов</div></div>
+  <div class="stat accent"><div class="stat-value">93</div><div class="stat-label">В работе</div></div>
+  <div class="stat orange"><div class="stat-value">0</div><div class="stat-label">НДЗ</div></div>
+  <div class="stat blue"><div class="stat-value">0</div><div class="stat-label">Оффер озвучен</div></div>
+  <div class="stat blue"><div class="stat-value">0</div><div class="stat-label">Отложенный спрос</div></div>
+  <div class="stat purple"><div class="stat-value">0</div><div class="stat-label">Выставлен счет</div></div>
+  <div class="stat green"><div class="stat-value">0</div><div class="stat-label">Продажи</div></div>
+  <div class="stat"><div class="stat-value">0.0%</div><div class="stat-label">Конверсия в продажу</div></div>
+  <div class="stat" style="min-width:180px"><div class="stat-value" style="font-size:20px">0</div><div class="stat-label">Сумма сделок, ₽</div></div>
+  <div class="stat" style="min-width:180px"><div class="stat-value" style="font-size:20px">0</div><div class="stat-label">Средний чек, ₽</div></div>
+</div>
+
+<h2>Лиды по дням (с 6 июня)</h2>
+<div class="chart-card" style="height:200px"><canvas id="dailyChart"></canvas></div>
+
+<h2>Лиды по капиталу по дням</h2>
+<div class="chart-card" style="height:260px"><canvas id="dailyCapChart"></canvas></div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start">
+  <div>
+    <h2>Капитал клиентов</h2>
+    <div class="chart-card" style="height:320px"><canvas id="capitalChart"></canvas></div>
+  </div>
+  <div>
+    <h2>Готовность присоединиться</h2>
+    <div class="chart-card" style="height:320px"><canvas id="readyChart"></canvas></div>
+  </div>
+</div>
+
+<h2>Кумулятивная воронка (атрибутированная)</h2>
+<div class="chart-card" style="height:360px"><canvas id="cumFunnelChart"></canvas></div>
+
+<h2>Конверсия по неделям (когортный анализ)</h2>
+<p style="color:#8b8fa8;font-size:12px;margin:-10px 0 14px">Лиды сгруппированы по дате создания (неделя пн–вс). * — незрелые когорты (&lt;14 дней), конверсия занижена.</p>
+<div style="overflow-x:auto">
+<table id="cohortTable" style="min-width:600px"></table>
+</div>
+
+<h2>Конверсия: Взято в работу → Контакт установлен</h2>
+<div class="chart-card" style="height:320px"><canvas id="convFunnelChart"></canvas></div>
+
+<h2>Лиды по менеджерам</h2>
+<div class="chart-card" style="height:600px"><canvas id="mgrChart"></canvas></div>
+
+<h2>Просроченные задачи по менеджерам</h2>
+<div class="chart-card" style="height:600px"><canvas id="overdueChart"></canvas></div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-bottom:16px">
+  <div>
+    <h2>Выручка по менеджерам</h2>
+    <div class="chart-card" style="height:360px"><canvas id="revenueChart"></canvas></div>
+  </div>
+  <div>
+    <h2>Количество продаж по менеджерам</h2>
+    <div class="chart-card" style="height:360px"><canvas id="mgrSalesChart"></canvas></div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+  <div>
+    <h2>Конверсия Взято в работу → Продажи</h2>
+    <div class="chart-card" style="height:360px"><canvas id="mgrConvChart"></canvas></div>
+  </div>
+  <div>
+    <h2>Средний чек по менеджерам</h2>
+    <div class="chart-card" style="height:360px"><canvas id="mgrAvgChart"></canvas></div>
+  </div>
+</div>
+
+<h2>Причины закрытия сделок</h2>
+<div class="chart-card" style="height:320px"><canvas id="reasonChart"></canvas></div>
+
+<h2>Детализация по менеджерам</h2>
+<div style="overflow-x:auto">
+<table>
+  <thead><tr>
+    <th>Менеджер</th>
+    <th class="num">Всего</th>
+    <th class="num">Входящие</th>
+    <th class="num">Новый лид</th>
+    <th class="num">ОМ назначен</th>
+    <th class="num">Взято в работу</th>
+    <th class="num">Контакт уст.</th>
+    <th class="num">Квалифицирован</th>
+    <th class="num">НДЗ</th>
+    <th class="num">Оффер озвучен</th>
+    <th class="num">Отложен</th>
+    <th class="num">Продажи+</th>
+    <th class="num">Потеряно</th>
+    <th class="num">Просрочено</th>
+  </tr></thead>
+  <tbody id="mgrTable"></tbody>
+</table>
+</div>
+
+<script>
+const DATA = {"sorted_statuses": [{"name": "Новый лид", "count": 92, "group": "new_lead", "pipeline": "Основная воронка ОП"}, {"name": "Взято в работу", "count": 1, "group": "in_work", "pipeline": "Основная воронка ОП"}, {"name": "Закрыто и не реализовано", "count": 1, "group": "lost", "pipeline": "Мини Курс"}], "group_counts": {"new_lead": 92, "in_work": 1, "lost": 1}, "managers": {"12377210": "Никита Саламатин", "11176694": "Наталья", "6461602": "Зверева Елена", "11181290": "Сергей", "9948090": "Денис Криницын", "11068965": "Максим Лисевский", "10293970": "Влад", "12738086": "Кирилл", "11356530": "Денис", "7728454": "Виктория Шинкарева", "6976552": "Виолетта Осадчук", "9596454": "Ковалева Любовь"}, "mgr_viz": {"11356530": {"new_lead": 91, "lost": 1}, "9948090": {"in_work": 1}, "10293970": {"new_lead": 1}}, "overdue": {"11356530": 2}, "daily_labels": ["06.06", "07.06", "08.06", "09.06", "10.06", "11.06", "12.06", "13.06", "14.06", "15.06", "16.06", "17.06", "18.06", "19.06", "20.06", "21.06", "22.06", "23.06", "24.06"], "daily_values": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 93, 0, 0], "capital_labels": ["$5,000-50,000", "$100,000-500,000", "Не указан"], "capital_values": [2, 1, 91], "daily_cap_labels": ["06.06", "07.06", "08.06", "09.06", "10.06", "11.06", "12.06", "13.06", "14.06", "15.06", "16.06", "17.06", "18.06", "19.06", "20.06", "21.06", "22.06", "23.06", "24.06"], "daily_cap_data": {"$5,000-50,000": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0], "$100,000-500,000": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "Не указан": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 91, 0, 0]}, "ready_labels": ["Не ответил на вопрос", "Хочу_больше_узнать_про_программу"], "ready_values": [91, 3], "conv_dates": ["06.06", "07.06", "08.06", "09.06", "10.06", "11.06", "12.06", "13.06", "14.06", "15.06", "16.06", "17.06", "18.06", "19.06", "20.06", "21.06", "22.06", "23.06", "24.06"], "conv_vzv": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0], "conv_pct": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "reason_labels": ["Дубль"], "reason_values": [1], "revenue_mgr_ids": [], "revenue_values": [], "mgr_sales_count": {"12377210": 0, "11176694": 0, "6461602": 0, "11181290": 0, "9948090": 0, "11068965": 0, "10293970": 0, "12738086": 0, "11356530": 0, "7728454": 0, "6976552": 0, "9596454": 0}, "mgr_avg_price": {"12377210": 0, "11176694": 0, "6461602": 0, "11181290": 0, "9948090": 0, "11068965": 0, "10293970": 0, "12738086": 0, "11356530": 0, "7728454": 0, "6976552": 0, "9596454": 0}, "mgr_conv": {"12377210": {"inwork": 0, "sales": 0, "pct": 0}, "11176694": {"inwork": 0, "sales": 0, "pct": 0}, "6461602": {"inwork": 0, "sales": 0, "pct": 0}, "11181290": {"inwork": 0, "sales": 0, "pct": 0}, "9948090": {"inwork": 1, "sales": 0, "pct": 0.0}, "11068965": {"inwork": 0, "sales": 0, "pct": 0}, "10293970": {"inwork": 0, "sales": 0, "pct": 0}, "12738086": {"inwork": 0, "sales": 0, "pct": 0}, "11356530": {"inwork": 1, "sales": 0, "pct": 0.0}, "7728454": {"inwork": 0, "sales": 0, "pct": 0}, "6976552": {"inwork": 0, "sales": 0, "pct": 0}, "9596454": {"inwork": 0, "sales": 0, "pct": 0}}, "cumulative_funnel": [{"name": "Новый лид", "count": 94}, {"name": "Взято в работу", "count": 2}, {"name": "Контакт установлен", "count": 0}, {"name": "Квалифицирован", "count": 0}, {"name": "Оффер озвучен", "count": 0}, {"name": "Выставлен счет", "count": 0}, {"name": "Продажи", "count": 0}], "cohort_table": {"weeks": ["01.06–07.06", "22.06–28.06"], "immature": ["22.06–28.06"], "stages": ["Новый лид", "Взято в работу", "Контакт установлен", "Квалифицирован", "Оффер озвучен", "Выставлен счет", "Продажи"], "counts": {"01.06–07.06": [1, 0, 0, 0, 0, 0, 0], "22.06–28.06": [93, 2, 0, 0, 0, 0, 0]}, "totals": [94, 2, 0, 0, 0, 0, 0]}};
+const VCOLORS = {incoming:"#74b9ff",new_lead:"#0984e3",om:"#6c5ce7",in_work:"#00cec9",contact:"#ffd32a",qualified:"#ff6b81",ndz:"#f5a623",offer:"#eb4d4b",delayed:"#a29bfe",sale:"#6ab04c",lost:"#eb4d4b"};
+const VLABELS = {incoming:"Входящие",new_lead:"Новый лид",om:"ОМ назначен",in_work:"Взято в работу",contact:"Контакт установлен",qualified:"Квалифицирован",ndz:"НДЗ",offer:"Оффер озвучен",delayed:"Отложен",sale:"Продажи+"};
+const VORDER  = ["incoming","new_lead","om","in_work","contact","qualified","ndz","offer","delayed","sale"];
+function fmt(n){return(n||0).toLocaleString("ru-RU")}
+const base = {
+  responsive:true,
+  plugins:{legend:{labels:{color:"#8b8fa8",font:{size:12}}},
+            tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+  scales:{
+    x:{ticks:{color:"#8b8fa8"},grid:{color:"#2a2d3a"}},
+    y:{ticks:{color:"#8b8fa8"},grid:{color:"#2a2d3a"}}
+  }
+};
+
+// Daily leads chart
+new Chart(document.getElementById("dailyChart"),{
+  type:"bar",
+  data:{
+    labels:DATA.daily_labels,
+    datasets:[{
+      label:"Лидов за день",
+      data:DATA.daily_values,
+      backgroundColor:"#4f8ef7",
+      borderRadius:3,
+    }]
+  },
+  options:{...base,maintainAspectRatio:false,
+    plugins:{...base.plugins,legend:{display:false}},
+    scales:{
+      x:{...base.scales.x,ticks:{color:"#e8eaf0"}},
+      y:{...base.scales.y,beginAtZero:true}
+    }
+  }
+});
+
+
+// Attributed funnel
+(function(){
+  const stages = DATA.cumulative_funnel;
+  const topVal = stages[0] ? stages[0].count : 1;
+  const palette = ["#4f8ef7","#00cec9","#ffd32a","#ff6b81","#7ed6df","#a29bfe","#6ab04c"];
+  new Chart(document.getElementById("cumFunnelChart"),{
+    type:"bar",
+    data:{
+      labels: stages.map(s=>s.name),
+      datasets:[{
+        label:"Лидов",
+        data: stages.map(s=>s.count),
+        backgroundColor: stages.map((_,i)=>palette[i]||"#4f8ef7"),
+        borderRadius:3,
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:function(c){
+            const i = c.dataIndex;
+            const pctTop = topVal ? Math.round(c.raw/topVal*100) : 0;
+            const prev = i > 0 ? stages[i-1].count : topVal;
+            const pctPrev = prev ? Math.round(c.raw/prev*100) : 0;
+            const lines = [` ${fmt(c.raw)} лидов (${pctTop}% от входящих)`];
+            if(i > 0) lines.push(` Конверсия с предыдущего: ${pctPrev}%`);
+            return lines;
+          }
+        }}
+      },
+      scales:{
+        x:{beginAtZero:true,ticks:{color:"#e8eaf0"},grid:{color:"#2a2d3a"}},
+        y:{ticks:{color:"#e8eaf0",font:{size:13}},grid:{color:"#2a2d3a"}}
+      }
+    }
+  });
+})();
+
+// Cohort conversion table
+(function(){
+  const ct = DATA.cohort_table;
+  if(!ct||!ct.weeks||!ct.weeks.length) return;
+  const immSet = new Set(ct.immature);
+  const weeks  = ct.weeks;
+  const stages = ct.stages;
+  const counts = ct.counts;
+  const totals = ct.totals;
+
+  function convColor(pct){
+    if(pct>=70) return '#6ab04c';
+    if(pct>=40) return '#f5a623';
+    return '#eb4d4b';
+  }
+  function barCell(cnt, prev, immature, bgStyle){
+    const pct = prev>0 ? Math.round(cnt/prev*100) : 0;
+    const col = convColor(pct);
+    const op  = immature ? 'opacity:0.55;' : '';
+    const bg  = bgStyle  ? bgStyle         : '';
+    return '<td style="padding:6px 12px;' + op + bg + '">'
+      + '<div style="display:flex;align-items:center;gap:7px">'
+      + '<div style="width:54px;height:7px;background:#2a2d3a;border-radius:3px;flex-shrink:0">'
+      + '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px"></div>'
+      + '</div>'
+      + '<span style="font-size:12px;color:' + col + ';font-weight:600">' + pct + '%</span>'
+      + '</div></td>';
+  }
+
+  // Header
+  let html = '<thead><tr><th style="min-width:180px">Этап / Конверсия</th>';
+  weeks.forEach(function(w){
+    const imm = immSet.has(w);
+    html += '<th style="text-align:center;' + (imm?'opacity:0.6':'') + '">' + w + (imm?' *':'') + '</th>';
+  });
+  html += '<th style="text-align:center;background:#1a2e0a">Итого</th></tr></thead><tbody>';
+
+  stages.forEach(function(stage, si){
+    // Count row
+    html += '<tr style="border-top:2px solid #2a2d3a"><td style="font-weight:600;color:#e8eaf0;font-size:13px">' + stage + '</td>';
+    weeks.forEach(function(w){
+      const cnt = ((counts[w]||[])[si])||0;
+      const imm = immSet.has(w);
+      html += '<td class="num" style="' + (imm?'opacity:0.6':'') + '">' + fmt(cnt) + '</td>';
+    });
+    html += '<td class="num" style="font-weight:700;background:#1a1f0a">' + fmt(totals[si]) + '</td></tr>';
+
+    // Conversion row (skip first stage — no previous stage)
+    if(si > 0){
+      html += '<tr><td style="font-size:11px;color:#8b8fa8;padding-left:18px">&#8627; к предыдущему</td>';
+      weeks.forEach(function(w){
+        const cnt  = ((counts[w]||[])[si])||0;
+        const prev = ((counts[w]||[])[si-1])||0;
+        html += barCell(cnt, prev, immSet.has(w), '');
+      });
+      html += barCell(totals[si], totals[si-1], false, 'background:#1a1f0a;');
+      html += '</tr>';
+    }
+  });
+
+  html += '</tbody>';
+  document.getElementById('cohortTable').innerHTML = html;
+})();
+
+// Managers stacked
+const mgrIds=Object.keys(DATA.mgr_viz).sort((a,b)=>{
+  const ta=Object.values(DATA.mgr_viz[a]).reduce((s,v)=>s+v,0);
+  const tb=Object.values(DATA.mgr_viz[b]).reduce((s,v)=>s+v,0);
+  return tb-ta;
+});
+new Chart(document.getElementById("mgrChart"),{
+  type:"bar",
+  data:{
+    labels:mgrIds.map(id=>DATA.managers[id]||id),
+    datasets:VORDER.map(g=>({
+      label:VLABELS[g],
+      data:mgrIds.map(id=>(DATA.mgr_viz[id]||{})[g]||0),
+      backgroundColor:VCOLORS[g],borderRadius:2
+    }))
+  },
+  options:{...base,maintainAspectRatio:false,scales:{
+    x:{...base.scales.x,stacked:true},
+    y:{...base.scales.y,stacked:true}
+  }}
+});
+
+// Overdue
+const ovIds=Object.keys(DATA.overdue).filter(id=>DATA.managers[id]).sort((a,b)=>DATA.overdue[b]-DATA.overdue[a]);
+new Chart(document.getElementById("overdueChart"),{
+  type:"bar",
+  data:{
+    labels:ovIds.map(id=>DATA.managers[id]||id),
+    datasets:[{label:"Просрочено",data:ovIds.map(id=>DATA.overdue[id]),backgroundColor:"#eb4d4b",borderRadius:3}]
+  },
+  options:{...base,maintainAspectRatio:false,plugins:{...base.plugins,legend:{display:false}}}
+});
+
+// Daily capital grouped bar (% of day total)
+const capColors = {"$0-5,000":"#eb4d4b","до $5,000":"#f5a623","$5,000-50,000":"#ffd32a","$50,000-100,000":"#6ab04c","$100,000-500,000":"#00cec9","$500,000-1,000,000":"#4f8ef7","$1,000,000+":"#a29bfe","Неизвестно":"#636e72","Не указан":"#3d4045"};
+const dayTotals = DATA.daily_cap_labels.map((_,i)=>DATA.capital_labels.reduce((s,c)=>s+(DATA.daily_cap_data[c][i]||0),0));
+new Chart(document.getElementById("dailyCapChart"),{
+  type:"bar",
+  data:{
+    labels:DATA.daily_cap_labels,
+    datasets:DATA.capital_labels.map(cap=>{
+      return {
+        label:cap,
+        data:DATA.daily_cap_data[cap].map((v,i)=>dayTotals[i]?Math.round(v/dayTotals[i]*100):0),
+        backgroundColor:capColors[cap]||"#999",
+        borderWidth:0,
+        borderRadius:2,
+      };
+    })
+  },
+  options:{
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{position:"top",labels:{color:"#e8eaf0",font:{size:11},boxWidth:12,padding:8}},
+      tooltip:{
+        mode:"index",intersect:false,
+        callbacks:{label:function(c){return ` ${c.dataset.label}: ${c.raw}%`}}
+      }
+    },
+    scales:{
+      x:{ticks:{color:"#e8eaf0"},grid:{color:"#1e2a3a"}},
+      y:{beginAtZero:true,max:100,ticks:{color:"#e8eaf0",callback:v=>v+"%"},grid:{color:"#1e2a3a"}}
+    }
+  }
+});
+
+// Conversion funnel chart: bar (взято в работу) + line (% конверсии)
+new Chart(document.getElementById("convFunnelChart"),{
+  data:{
+    labels:DATA.conv_dates,
+    datasets:[
+      {
+        type:"bar",
+        label:"Взято в работу",
+        data:DATA.conv_vzv,
+        backgroundColor:"#00cec9",
+        borderRadius:3,
+        yAxisID:"yCount",
+        order:2,
+      },
+      {
+        type:"line",
+        label:"% в Контакт установлен",
+        data:DATA.conv_pct,
+        borderColor:"#ffd32a",
+        backgroundColor:"transparent",
+        pointBackgroundColor:"#ffd32a",
+        pointRadius:4,
+        tension:0.3,
+        yAxisID:"yPct",
+        order:1,
+        datalabels:{display:true},
+      }
+    ]
+  },
+  options:{
+    maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{
+      legend:{labels:{color:"#e8eaf0"}},
+      tooltip:{callbacks:{
+        label:function(c){
+          return c.dataset.yAxisID==="yPct"
+            ? ` ${c.dataset.label}: ${c.raw}%`
+            : ` ${c.dataset.label}: ${c.raw}`;
+        }
+      }}
+    },
+    scales:{
+      x:{ticks:{color:"#e8eaf0"},grid:{color:"#1e2a3a"}},
+      yCount:{
+        position:"left",
+        beginAtZero:true,
+        ticks:{color:"#e8eaf0"},
+        grid:{color:"#1e2a3a"},
+        title:{display:true,text:"Взято в работу",color:"#00cec9"},
+      },
+      yPct:{
+        position:"right",
+        min:0,max:100,
+        ticks:{color:"#ffd32a",callback:v=>v+"%"},
+        grid:{drawOnChartArea:false},
+        title:{display:true,text:"Конверсия %",color:"#ffd32a"},
+      }
+    }
+  }
+});
+
+// Capital doughnut
+new Chart(document.getElementById("capitalChart"),{
+  type:"doughnut",
+  data:{
+    labels:DATA.capital_labels,
+    datasets:[{
+      data:DATA.capital_values,
+      backgroundColor:["#eb4d4b","#f5a623","#ffd32a","#6ab04c","#00cec9","#4f8ef7","#a29bfe","#636e72","#3d4045"],
+      borderWidth:0,
+    }]
+  },
+  options:{
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{position:"right",labels:{color:"#e8eaf0",font:{size:12},boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:function(c){
+        const total=c.dataset.data.reduce((a,b)=>a+b,0);
+        return ` ${c.label}: ${c.raw} (${Math.round(c.raw/total*100)}%)`;
+      }}}
+    }
+  }
+});
+
+// Ready doughnut
+new Chart(document.getElementById("readyChart"),{
+  type:"doughnut",
+  data:{
+    labels:DATA.ready_labels.map(function(l){
+      if(l==="Супер_Я_готов") return "Готов сейчас";
+      if(l==="Хочу_больше_узнать_про_программу") return "Хочу узнать больше";
+      if(l==="Не ответил на вопрос") return "Не ответил на вопрос";
+      return l;
+    }),
+    datasets:[{
+      data:DATA.ready_values,
+      backgroundColor:DATA.ready_labels.map(function(l){
+        if(l==="Супер_Я_готов") return "#6ab04c";
+        if(l==="Хочу_больше_узнать_про_программу") return "#4f8ef7";
+        if(l==="Не ответил на вопрос") return "#3d4045";
+        return "#f5a623";
+      }),
+      borderWidth:0,
+    }]
+  },
+  options:{
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{position:"right",labels:{color:"#e8eaf0",font:{size:12},boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:function(c){
+        const total=c.dataset.data.reduce((a,b)=>a+b,0);
+        return ` ${c.label}: ${c.raw} (${Math.round(c.raw/total*100)}%)`;
+      }}}
+    }
+  }
+});
+
+// Revenue by manager
+new Chart(document.getElementById("revenueChart"),{
+  type:"bar",
+  data:{
+    labels:DATA.revenue_mgr_ids.map(id=>DATA.managers[id]||id),
+    datasets:[{
+      label:"Выручка, ₽",
+      data:DATA.revenue_values,
+      backgroundColor:"#6ab04c",
+      borderRadius:4,
+    }]
+  },
+  options:{
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{
+        label:function(c){
+          return " " + c.raw.toLocaleString("ru-RU") + " ₽";
+        }
+      }}
+    },
+    scales:{
+      x:{ticks:{color:"#e8eaf0",maxRotation:30},grid:{color:"#1e2a3a"}},
+      y:{beginAtZero:true,ticks:{color:"#e8eaf0",callback:v=>v.toLocaleString("ru-RU")+" ₽"},grid:{color:"#1e2a3a"}}
+    }
+  }
+});
+
+// Sales count by manager
+(function(){
+  const sc = DATA.mgr_sales_count;
+  const ids = Object.keys(sc)
+    .filter(id => DATA.managers[id])
+    .sort((a,b) => sc[b] - sc[a]);
+  if(!ids.length) return;
+  new Chart(document.getElementById('mgrSalesChart'), {
+    type: 'bar',
+    data: {
+      labels: ids.map(id => DATA.managers[id]),
+      datasets: [{
+        label: 'Продаж',
+        data: ids.map(id => sc[id]),
+        backgroundColor: '#4f8ef7',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {label: function(c){ return ' ' + c.raw + ' продаж'; }}}
+      },
+      scales: {
+        x: {ticks: {color: '#e8eaf0', maxRotation: 30}, grid: {color: '#1e2a3a'}},
+        y: {beginAtZero: true, ticks: {color: '#e8eaf0', stepSize: 1}, grid: {color: '#1e2a3a'}}
+      }
+    }
+  });
+})();
+
+// Manager conversion: Взято в работу → Продажи
+(function(){
+  const conv = DATA.mgr_conv;
+  const ids = Object.keys(conv)
+    .filter(id => DATA.managers[id] && conv[id].inwork > 0)
+    .sort((a,b) => conv[b].pct - conv[a].pct);
+  if(!ids.length) return;
+  const pcts   = ids.map(id => conv[id].pct);
+  const labels = ids.map(id => DATA.managers[id]);
+  const bgColors = pcts.map(p => p >= 5 ? '#6ab04c' : p >= 2 ? '#f5a623' : '#eb4d4b');
+  new Chart(document.getElementById('mgrConvChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Конверсия %',
+        data: pcts,
+        backgroundColor: bgColors,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {
+          label: function(c) {
+            const id = ids[c.dataIndex];
+            const d = conv[id];
+            return ' ' + c.raw + '% (' + d.sales + ' продаж из ' + d.inwork + ' в работе)';
+          }
+        }}
+      },
+      scales: {
+        x: {
+          beginAtZero: true, max: 10,
+          ticks: {color: '#e8eaf0', callback: function(v){ return v + '%'; }},
+          grid: {color: '#2a2d3a'}
+        },
+        y: {ticks: {color: '#e8eaf0', font: {size: 12}}, grid: {color: '#2a2d3a'}}
+      }
+    }
+  });
+})();
+
+// Avg ticket by manager
+(function(){
+  const ap = DATA.mgr_avg_price;
+  const ids = Object.keys(ap)
+    .filter(id => DATA.managers[id] && ap[id] > 0)
+    .sort((a,b) => ap[b] - ap[a]);
+  if(!ids.length) return;
+  new Chart(document.getElementById('mgrAvgChart'), {
+    type: 'bar',
+    data: {
+      labels: ids.map(id => DATA.managers[id]),
+      datasets: [{
+        label: 'Средний чек, ₽',
+        data: ids.map(id => ap[id]),
+        backgroundColor: '#a29bfe',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {
+          label: function(c){ return ' ' + c.raw.toLocaleString('ru-RU') + ' ₽'; }
+        }}
+      },
+      scales: {
+        x: {ticks: {color: '#e8eaf0', maxRotation: 30}, grid: {color: '#1e2a3a'}},
+        y: {
+          beginAtZero: true,
+          ticks: {color: '#e8eaf0', callback: function(v){ return v.toLocaleString('ru-RU') + ' ₽'; }},
+          grid: {color: '#1e2a3a'}
+        }
+      }
+    }
+  });
+})();
+
+// Closure reasons horizontal bar
+new Chart(document.getElementById("reasonChart"),{
+  type:"bar",
+  data:{
+    labels:DATA.reason_labels,
+    datasets:[{
+      label:"Сделок",
+      data:DATA.reason_values,
+      backgroundColor:"#eb4d4b",
+      borderRadius:4,
+    }]
+  },
+  options:{
+    indexAxis:"y",
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{
+        label:function(c){
+          const total=DATA.reason_values.reduce((a,b)=>a+b,0);
+          return ` ${c.raw} сделок (${Math.round(c.raw/total*100)}%)`;
+        }
+      }}
+    },
+    scales:{
+      x:{beginAtZero:true,ticks:{color:"#e8eaf0"},grid:{color:"#1e2a3a"}},
+      y:{ticks:{color:"#e8eaf0",font:{size:12}},grid:{display:false}}
+    }
+  }
+});
+
+// Table
+const tbody=document.getElementById("mgrTable");
+mgrIds.forEach(id=>{
+  const d=DATA.mgr_viz[id]||{};
+  const tot=Object.values(d).reduce((s,v)=>s+v,0);
+  const ov=DATA.overdue[id]||0;
+  const ovColor=ov>20?"#eb4d4b":ov>5?"#f5a623":"#6ab04c";
+  tbody.innerHTML+=`<tr>
+    <td>${DATA.managers[id]||id}</td>
+    <td class="num">${fmt(tot)}</td>
+    <td class="num"><span class="tag tag-incoming">${d.incoming||0}</span></td>
+    <td class="num"><span class="tag tag-new-lead">${d.new_lead||0}</span></td>
+    <td class="num"><span class="tag tag-om">${d.om||0}</span></td>
+    <td class="num"><span class="tag tag-in-work">${d.in_work||0}</span></td>
+    <td class="num"><span class="tag tag-contact">${d.contact||0}</span></td>
+    <td class="num"><span class="tag tag-qualified">${d.qualified||0}</span></td>
+    <td class="num"><span class="tag tag-ndz">${d.ndz||0}</span></td>
+    <td class="num"><span class="tag tag-offer">${d.offer||0}</span></td>
+    <td class="num"><span class="tag tag-delayed">${d.delayed||0}</span></td>
+    <td class="num"><span class="tag tag-sale">${d.sale||0}</span></td>
+    <td class="num"><span class="tag tag-lost">${d.lost||0}</span></td>
+    <td class="num" style="color:${ovColor}">${ov}</td>
+  </tr>`;
+});
+</script>
+</body>
+</html>
